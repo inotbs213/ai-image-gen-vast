@@ -25,7 +25,14 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    return NextResponse.json({ image: data.images[0] });
+    let seed: number | undefined;
+    try {
+      const info = JSON.parse(data.info);
+      seed = info.seed;
+    } catch {
+      seed = undefined;
+    }
+    return NextResponse.json({ image: data.images[0], seed });
   } catch (e) {
     console.error('Route error:', e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
