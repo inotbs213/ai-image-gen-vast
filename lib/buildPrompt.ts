@@ -1,4 +1,7 @@
 export interface StepFormData {
+  // シーン
+  scene_type?: string;
+
   // キャラ基本
   gender?: string;
   age?: string;
@@ -6,6 +9,7 @@ export interface StepFormData {
   skin_tone?: string;
   body_type?: string;
   breast_size?: string;
+  pubic_hair?: string;
 
   // 顔・髪
   face_type?: string;
@@ -20,24 +24,26 @@ export interface StepFormData {
   outfit?: string;
   outfit_color?: string;
   outfit_material?: string;
-  outfit_state?: string;
+  outfit_state: string[];
+  underwear?: string;
   exposure?: string;
 
-  // ポーズ
-  composition?: string;
+  // ポーズ・構図
+  shot_type?: string;
   angle?: string;
-  pose?: string;
+  pose: string[];
+  position?: string;
+  action: string[];
 
-  // 撮影設定
-  camera?: string;
-  lighting?: string;
+  // シーン設定
+  location?: string;
+  situation?: string;
+  mood?: string;
 
   // NSFW
   nsfw_level?: string;
-  nsfw_situation?: string;
 
-  // 背景・詳細
-  background?: string;
+  // 共通
   style: "real" | "anime" | "cinematic";
   freePrompt?: string;
   extraNegative?: string;
@@ -45,75 +51,101 @@ export interface StepFormData {
   cfg_scale: number;
   width: number;
   height: number;
-
-  // シード値
   seed?: number;
-
-  // モデル選択
   model?: string;
 }
 
+const SCENE_TYPE_PROMPTS: Record<string, string> = {
+  solo:      "(1girl:1.2), solo",
+  couple_mf: "1boy, 1girl, couple",
+  couple_ff: "2girls, yuri",
+  group:     "multiple girls, group",
+};
+
 export function buildUserPrompt(data: StepFormData, facesLoraStrength: number = 0): string {
   const parts: string[] = [];
+  const isSolo = !data.scene_type || data.scene_type === "solo";
 
-  // 撮影設定（最初に置くと全体のトーンに影響する）
-  if (data.camera) parts.push(data.camera);
-  if (data.lighting) parts.push(data.lighting);
-
-  // 構図
-  if (data.composition === "full body") {
-    parts.push("full body, long shot, wide shot, full figure, entire body visible, detailed clothing, full outfit visible, feet visible");
-  } else if (data.composition) {
-    parts.push(data.composition);
+  // 1. scene_type
+  if (data.scene_type && SCENE_TYPE_PROMPTS[data.scene_type]) {
+    parts.push(SCENE_TYPE_PROMPTS[data.scene_type]);
   }
 
-  // アングル・ポーズ
-  if (data.angle) parts.push(data.angle + " angle");
-  if (data.pose) parts.push(data.pose);
+  // 2. shot_type
+  if (data.shot_type === "full body") {
+    parts.push("full body, long shot, wide shot, full figure, entire body visible, detailed clothing, full outfit visible, feet visible");
+  } else if (data.shot_type) {
+    parts.push(data.shot_type);
+  }
 
-  // 衣装（色・素材・状態を結合）
+  // 3. angle
+  if (data.angle) parts.push(data.angle);
+
+  // 4. pose（solo）or position（非solo）
+  if (isSolo) {
+    if (data.pose.length > 0) parts.push(data.pose.join(", "));
+  } else {
+    if (data.position) parts.push(data.position);
+  }
+
+  // 5. action（非soloのみ）
+  if (!isSolo && data.action.length > 0) {
+    parts.push(data.action.join(", "));
+  }
+
+  // 6. 衣装
   if (data.outfit) {
-    const outfitParts = [data.outfit_color, data.outfit_material, data.outfit_state, data.outfit].filter(Boolean);
+    const outfitParts = [
+      data.outfit_color,
+      data.outfit_material,
+      ...data.outfit_state.filter(Boolean),
+      data.outfit,
+    ].filter(Boolean);
     parts.push(outfitParts.join(" "));
+  } else if (data.outfit_state.filter(Boolean).length > 0) {
+    parts.push(data.outfit_state.filter(Boolean).join(", "));
   }
   if (data.exposure) parts.push(data.exposure);
 
-  // 人種・肌
+  // 7. underwear
+  if (data.underwear) parts.push(data.underwear);
+
+  // 8. 人種・肌
   if (data.ethnicity) parts.push(data.ethnicity);
   if (data.skin_tone) parts.push(data.skin_tone);
 
-  // キャラ基本
+  // 9. キャラ基本
   if (data.gender) parts.push(data.gender);
   if (data.age) parts.push(data.age);
   if (data.body_type) parts.push(data.body_type);
   if (data.breast_size) parts.push(data.breast_size);
 
-  // 顔タイプ
-  if (data.face_type) parts.push(data.face_type);
+  // 10. pubic_hair
+  if (data.pubic_hair) parts.push(data.pubic_hair);
 
-  // 髪
+  // 11. 顔・髪
+  if (data.face_type) parts.push(data.face_type);
   if (data.hair_color) parts.push(data.hair_color);
   if (data.hair_style) parts.push(data.hair_style);
-
-  // 目・口・表情
   if (data.eye_color) parts.push(data.eye_color);
   if (data.eye_shape) parts.push(data.eye_shape);
   if (data.mouth) parts.push(data.mouth);
   if (data.expression) parts.push(data.expression);
 
-  // NSFWシチュエーション（背景と同レベルで配置）
-  if (data.nsfw_situation) parts.push(data.nsfw_situation);
+  // 12. location
+  if (data.location) parts.push(data.location);
 
-  // 背景
-  if (data.background) parts.push(data.background);
+  // 13. situation
+  if (data.situation) parts.push(data.situation);
 
-  // 自由入力
+  // 14. mood
+  if (data.mood) parts.push(data.mood);
+
+  // 15. freePrompt
   if (data.freePrompt) parts.push(data.freePrompt);
 
-  // NSFW強度（末尾近くで強い影響）
+  // 16. nsfw_level + LoRA
   if (data.nsfw_level) parts.push(data.nsfw_level);
-
-  // LoRAタグ
   if (facesLoraStrength > 0) parts.push(`<lora:better_faces_sdxl:${facesLoraStrength}>`);
 
   return parts.join(", ");

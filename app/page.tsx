@@ -17,8 +17,8 @@ const FAMILY_LABEL: Record<string, string> = {
 
 const RESOLUTIONS = [
   { label: "正方形 1024×1024", width: 1024, height: 1024 },
-  { label: "横長 1216×832", width: 1216, height: 832 },
-  { label: "縦長 832×1216", width: 832, height: 1216 },
+  { label: "横長 1216×832",    width: 1216, height: 832 },
+  { label: "縦長 832×1216",    width: 832,  height: 1216 },
 ];
 
 const DEFAULT: StepFormData = {
@@ -28,6 +28,9 @@ const DEFAULT: StepFormData = {
   width: 832,
   height: 1216,
   model: "novaAsianXL_illustrious_v7.safetensors",
+  pose: [],
+  outfit_state: [],
+  action: [],
 };
 
 // ── タブ定義 ──────────────────────────────────────────────────
@@ -37,7 +40,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "character", label: "👤 キャラ" },
   { id: "face",      label: "💄 顔・髪" },
   { id: "outfit",    label: "👗 衣装" },
-  { id: "pose",      label: "📐 ポーズ" },
+  { id: "pose",      label: "📐 ポーズ・構図" },
   { id: "scene",     label: "🌆 シーン" },
   { id: "detail",    label: "⚙️ 詳細" },
 ];
@@ -80,6 +83,72 @@ function FieldGroup({
   );
 }
 
+function MultiCheckGroup({
+  label,
+  options,
+  selected,
+  onChange,
+  scrollable = false,
+}: {
+  label: string;
+  options: readonly { label: string; value: string }[];
+  selected: string[];
+  onChange: (vals: string[]) => void;
+  scrollable?: boolean;
+}) {
+  const count = selected.length;
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-sm font-medium text-gray-400">{label}</p>
+        <div className="flex items-center gap-2">
+          {count > 0 && (
+            <span className="text-xs text-purple-400">{count}個選択中</span>
+          )}
+          {count > 0 && (
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="text-xs text-gray-500 hover:text-gray-300 underline"
+            >
+              全解除
+            </button>
+          )}
+        </div>
+      </div>
+      <div
+        className={`flex flex-wrap gap-2 ${
+          scrollable ? "max-h-40 overflow-y-auto p-2 bg-gray-800/30 rounded-lg" : ""
+        }`}
+      >
+        {options.map((opt) => {
+          const isSelected = selected.includes(opt.value);
+          return (
+            <button
+              key={opt.value || "none"}
+              type="button"
+              onClick={() =>
+                onChange(
+                  isSelected
+                    ? selected.filter((v) => v !== opt.value)
+                    : [...selected, opt.value]
+                )
+              }
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                isSelected
+                  ? "bg-purple-600 text-white"
+                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── タブProps型 ───────────────────────────────────────────────
 interface TabProps {
   data: StepFormData;
@@ -88,9 +157,15 @@ interface TabProps {
 }
 
 // ── 各タブコンポーネント ──────────────────────────────────────
-function CharacterTab({ data, toggle }: TabProps) {
+function CharacterTab({ data, toggle, setVal }: TabProps) {
   return (
     <>
+      <FieldGroup label="シーンタイプ">
+        {OPTIONS.scene_type.map((opt) => (
+          <Btn key={opt.value} label={opt.label} active={data.scene_type === opt.value}
+            onClick={() => toggle("scene_type", opt.value)} />
+        ))}
+      </FieldGroup>
       <FieldGroup label="性別">
         {OPTIONS.gender.map((opt) => (
           <Btn key={opt.value} label={opt.label} active={data.gender === opt.value}
@@ -125,6 +200,12 @@ function CharacterTab({ data, toggle }: TabProps) {
         {OPTIONS.breast_size.map((opt) => (
           <Btn key={opt.value} label={opt.label} active={data.breast_size === opt.value}
             onClick={() => toggle("breast_size", opt.value)} />
+        ))}
+      </FieldGroup>
+      <FieldGroup label="陰毛">
+        {OPTIONS.pubic_hair.map((opt) => (
+          <Btn key={opt.value || "none"} label={opt.label} active={data.pubic_hair === opt.value}
+            onClick={() => toggle("pubic_hair", opt.value)} />
         ))}
       </FieldGroup>
     </>
@@ -180,7 +261,7 @@ function FaceTab({ data, toggle }: TabProps) {
   );
 }
 
-function OutfitTab({ data, toggle }: TabProps) {
+function OutfitTab({ data, toggle, setVal }: TabProps) {
   return (
     <>
       <FieldGroup label="衣装" scrollable>
@@ -201,10 +282,16 @@ function OutfitTab({ data, toggle }: TabProps) {
             onClick={() => toggle("outfit_material", opt.value)} />
         ))}
       </FieldGroup>
-      <FieldGroup label="状態">
-        {OPTIONS.outfit_state.map((opt) => (
-          <Btn key={opt.value || "standard"} label={opt.label} active={data.outfit_state === opt.value}
-            onClick={() => toggle("outfit_state", opt.value)} />
+      <MultiCheckGroup
+        label="状態（複数可）"
+        options={OPTIONS.outfit_state}
+        selected={data.outfit_state}
+        onChange={(vals) => setVal("outfit_state", vals)}
+      />
+      <FieldGroup label="下着・インナー" scrollable>
+        {OPTIONS.underwear.map((opt) => (
+          <Btn key={opt.value} label={opt.label} active={data.underwear === opt.value}
+            onClick={() => toggle("underwear", opt.value)} />
         ))}
       </FieldGroup>
       <FieldGroup label="露出度">
@@ -217,13 +304,14 @@ function OutfitTab({ data, toggle }: TabProps) {
   );
 }
 
-function PoseTab({ data, toggle }: TabProps) {
+function PoseTab({ data, toggle, setVal }: TabProps) {
+  const isSolo = !data.scene_type || data.scene_type === "solo";
   return (
     <>
-      <FieldGroup label="構図" scrollable>
-        {OPTIONS.composition.map((opt) => (
-          <Btn key={opt.value} label={opt.label} active={data.composition === opt.value}
-            onClick={() => toggle("composition", opt.value)} />
+      <FieldGroup label="構図">
+        {OPTIONS.shot_type.map((opt) => (
+          <Btn key={opt.value} label={opt.label} active={data.shot_type === opt.value}
+            onClick={() => toggle("shot_type", opt.value)} />
         ))}
       </FieldGroup>
       <FieldGroup label="アングル" scrollable>
@@ -232,12 +320,32 @@ function PoseTab({ data, toggle }: TabProps) {
             onClick={() => toggle("angle", opt.value)} />
         ))}
       </FieldGroup>
-      <FieldGroup label="ポーズ" scrollable>
-        {OPTIONS.pose.map((opt) => (
-          <Btn key={opt.value} label={opt.label} active={data.pose === opt.value}
-            onClick={() => toggle("pose", opt.value)} />
-        ))}
-      </FieldGroup>
+
+      {isSolo ? (
+        <MultiCheckGroup
+          label="ポーズ（複数可）"
+          options={OPTIONS.pose}
+          selected={data.pose}
+          onChange={(vals) => setVal("pose", vals)}
+          scrollable
+        />
+      ) : (
+        <>
+          <FieldGroup label="体位" scrollable>
+            {OPTIONS.position.map((opt) => (
+              <Btn key={opt.value} label={opt.label} active={data.position === opt.value}
+                onClick={() => toggle("position", opt.value)} />
+            ))}
+          </FieldGroup>
+          <MultiCheckGroup
+            label="アクション（複数可）"
+            options={OPTIONS.action}
+            selected={data.action}
+            onChange={(vals) => setVal("action", vals)}
+            scrollable
+          />
+        </>
+      )}
     </>
   );
 }
@@ -245,28 +353,22 @@ function PoseTab({ data, toggle }: TabProps) {
 function SceneTab({ data, toggle }: TabProps) {
   return (
     <>
-      <FieldGroup label="背景" scrollable>
-        {OPTIONS.background.map((opt) => (
-          <Btn key={opt.value} label={opt.label} active={data.background === opt.value}
-            onClick={() => toggle("background", opt.value)} />
+      <FieldGroup label="場所" scrollable>
+        {OPTIONS.location.map((opt) => (
+          <Btn key={opt.value} label={opt.label} active={data.location === opt.value}
+            onClick={() => toggle("location", opt.value)} />
         ))}
       </FieldGroup>
-      <FieldGroup label="NSFWシチュエーション">
-        {OPTIONS.nsfw_situation.map((opt) => (
-          <Btn key={opt.value || "none"} label={opt.label} active={data.nsfw_situation === opt.value}
-            onClick={() => toggle("nsfw_situation", opt.value)} />
+      <FieldGroup label="シチュエーション" scrollable>
+        {OPTIONS.situation.map((opt) => (
+          <Btn key={opt.value || "none"} label={opt.label} active={data.situation === opt.value}
+            onClick={() => toggle("situation", opt.value)} />
         ))}
       </FieldGroup>
-      <FieldGroup label="カメラ・撮影スタイル">
-        {OPTIONS.camera.map((opt) => (
-          <Btn key={opt.value || "standard"} label={opt.label} active={data.camera === opt.value}
-            onClick={() => toggle("camera", opt.value)} />
-        ))}
-      </FieldGroup>
-      <FieldGroup label="ライティング">
-        {OPTIONS.lighting.map((opt) => (
-          <Btn key={opt.value || "standard"} label={opt.label} active={data.lighting === opt.value}
-            onClick={() => toggle("lighting", opt.value)} />
+      <FieldGroup label="雰囲気">
+        {OPTIONS.mood.map((opt) => (
+          <Btn key={opt.value} label={opt.label} active={data.mood === opt.value}
+            onClick={() => toggle("mood", opt.value)} />
         ))}
       </FieldGroup>
     </>
@@ -300,12 +402,8 @@ function DetailTab({
       <div>
         <FieldGroup label="モデル">
           {MODELS.map((m) => (
-            <Btn
-              key={m.value}
-              label={m.label}
-              active={data.model === m.value}
-              onClick={() => onModelSelect(m)}
-            />
+            <Btn key={m.value} label={m.label} active={data.model === m.value}
+              onClick={() => onModelSelect(m)} />
           ))}
         </FieldGroup>
         {(() => {
@@ -421,12 +519,12 @@ function DetailTab({
 // ── 設定サマリー ──────────────────────────────────────────────
 function SettingSummary({ data }: { data: StepFormData }) {
   const parts = [
+    OPTIONS.scene_type.find((o) => o.value === data.scene_type)?.label ?? null,
     data.gender === "female" ? "女性" : data.gender === "male" ? "男性" : null,
     OPTIONS.age.find((o) => o.value === data.age)?.label ?? null,
-    OPTIONS.ethnicity.find((o) => o.value === data.ethnicity)?.label ?? null,
     OPTIONS.body_type.find((o) => o.value === data.body_type)?.label ?? null,
     OPTIONS.outfit.find((o) => o.value === data.outfit)?.label ?? null,
-    OPTIONS.composition.find((o) => o.value === data.composition)?.label ?? null,
+    OPTIONS.shot_type.find((o) => o.value === data.shot_type)?.label ?? null,
   ].filter(Boolean);
 
   if (parts.length === 0) return null;
@@ -475,7 +573,6 @@ export default function Home() {
     setError("");
     setImageUrl(null);
 
-    // シード決定ロジック
     let effectiveSeed = -1;
     if (seedLocked && lastSeed !== null) {
       effectiveSeed = lastSeed;
@@ -489,7 +586,7 @@ export default function Home() {
     const finalPrompt = [currentModel.basePrompt, userPrompt].filter(Boolean).join(", ");
     const finalNegative = [currentModel.baseNegative, stepData.extraNegative].filter(Boolean).join(", ");
 
-    const isFullBody = stepData.composition === "full body";
+    const isFullBody = stepData.shot_type === "full body";
     const finalWidth = isFullBody ? 832 : stepData.width;
     const finalHeight = isFullBody ? 1216 : stepData.height;
 
@@ -516,9 +613,7 @@ export default function Home() {
       const json = await res.json();
       if (json.image) {
         setImageUrl(json.image);
-        if (json.seed !== undefined) {
-          setLastSeed(json.seed);
-        }
+        if (json.seed !== undefined) setLastSeed(json.seed);
       } else {
         throw new Error(json.error ?? "画像データが取得できませんでした");
       }
@@ -595,7 +690,6 @@ export default function Home() {
               className="w-full rounded-xl shadow-lg"
             />
 
-            {/* シード値表示エリア */}
             {lastSeed !== null && (
               <div className="bg-gray-800 rounded-lg p-3 flex items-center justify-between gap-3">
                 <div className="text-sm">
@@ -615,7 +709,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* シード固定中の補助テキスト */}
             {seedLocked && (
               <p className="text-xs text-yellow-400 px-1">
                 💡 シード固定中：衣装やポーズなど他の項目だけ変えて再生成すると、同じ顔のまま着替えなどができます
