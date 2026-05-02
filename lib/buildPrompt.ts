@@ -37,7 +37,7 @@ export interface StepFormData {
 
   // シーン設定
   location?: string;
-  situation?: string;
+  situation: string[];
   mood?: string;
 
   // NSFW
@@ -120,31 +120,33 @@ export function buildUserPrompt(data: StepFormData, facesLoraStrength: number = 
   if (data.body_type) parts.push(data.body_type);
   if (data.breast_size) parts.push(data.breast_size);
 
-  // 10. pubic_hair
-  if (data.pubic_hair) parts.push(data.pubic_hair);
+  // 10. pubic_hair（強調）
+  if (data.pubic_hair) parts.push(`(${data.pubic_hair}:1.4)`);
 
-  // 11. 顔・髪
+  // 11. eye_shape（強調・顔セクション先頭）
+  if (data.eye_shape) parts.push(`(${data.eye_shape}:1.3)`);
+
+  // 12. 顔・髪
   if (data.face_type) parts.push(data.face_type);
   if (data.hair_color) parts.push(data.hair_color);
   if (data.hair_style) parts.push(data.hair_style);
   if (data.eye_color) parts.push(data.eye_color);
-  if (data.eye_shape) parts.push(data.eye_shape);
   if (data.mouth) parts.push(data.mouth);
   if (data.expression) parts.push(data.expression);
 
-  // 12. location
+  // 13. location
   if (data.location) parts.push(data.location);
 
-  // 13. situation
-  if (data.situation) parts.push(data.situation);
+  // 14. situation（複数）
+  if (data.situation.length > 0) parts.push(data.situation.filter(Boolean).join(", "));
 
-  // 14. mood
+  // 15. mood
   if (data.mood) parts.push(data.mood);
 
-  // 15. freePrompt
+  // 16. freePrompt
   if (data.freePrompt) parts.push(data.freePrompt);
 
-  // 16. nsfw_level + LoRA
+  // 17. nsfw_level + LoRA
   if (data.nsfw_level) parts.push(data.nsfw_level);
   if (facesLoraStrength > 0) parts.push(`<lora:better_faces_sdxl:${facesLoraStrength}>`);
 

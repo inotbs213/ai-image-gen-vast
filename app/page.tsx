@@ -31,6 +31,7 @@ const DEFAULT: StepFormData = {
   pose: [],
   outfit_state: [],
   action: [],
+  situation: [],
 };
 
 // ── タブ定義 ──────────────────────────────────────────────────
@@ -350,7 +351,7 @@ function PoseTab({ data, toggle, setVal }: TabProps) {
   );
 }
 
-function SceneTab({ data, toggle }: TabProps) {
+function SceneTab({ data, toggle, setVal }: TabProps) {
   return (
     <>
       <FieldGroup label="場所" scrollable>
@@ -359,12 +360,13 @@ function SceneTab({ data, toggle }: TabProps) {
             onClick={() => toggle("location", opt.value)} />
         ))}
       </FieldGroup>
-      <FieldGroup label="シチュエーション" scrollable>
-        {OPTIONS.situation.map((opt) => (
-          <Btn key={opt.value || "none"} label={opt.label} active={data.situation === opt.value}
-            onClick={() => toggle("situation", opt.value)} />
-        ))}
-      </FieldGroup>
+      <MultiCheckGroup
+        label="シチュエーション（複数可）"
+        options={OPTIONS.situation}
+        selected={data.situation}
+        onChange={(vals) => setVal("situation", vals)}
+        scrollable
+      />
       <FieldGroup label="雰囲気">
         {OPTIONS.mood.map((opt) => (
           <Btn key={opt.value} label={opt.label} active={data.mood === opt.value}
