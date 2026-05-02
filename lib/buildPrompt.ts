@@ -30,10 +30,10 @@ export interface StepFormData {
 
   // ポーズ・構図
   shot_type?: string;
+  inset_view?: string;
   angle?: string;
   pose: string[];
   position?: string;
-  action: string[];
 
   // シーン設定
   location?: string;
@@ -66,6 +66,7 @@ export function buildUserPrompt(data: StepFormData, facesLoraStrength: number = 
   const parts: string[] = [];
   const isSolo = !data.scene_type || data.scene_type === "solo";
 
+
   // 1. scene_type
   if (data.scene_type && SCENE_TYPE_PROMPTS[data.scene_type]) {
     parts.push(SCENE_TYPE_PROMPTS[data.scene_type]);
@@ -78,6 +79,9 @@ export function buildUserPrompt(data: StepFormData, facesLoraStrength: number = 
     parts.push(data.shot_type);
   }
 
+  // 2.5. inset_view
+  if (data.inset_view) parts.push(data.inset_view);
+
   // 3. angle
   if (data.angle) parts.push(data.angle);
 
@@ -86,11 +90,6 @@ export function buildUserPrompt(data: StepFormData, facesLoraStrength: number = 
     if (data.pose.length > 0) parts.push(data.pose.join(", "));
   } else {
     if (data.position) parts.push(data.position);
-  }
-
-  // 5. action（非soloのみ）
-  if (!isSolo && data.action.length > 0) {
-    parts.push(data.action.join(", "));
   }
 
   // 6. 衣装

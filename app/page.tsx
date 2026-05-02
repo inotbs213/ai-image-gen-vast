@@ -30,7 +30,6 @@ const DEFAULT: StepFormData = {
   model: "novaAsianXL_illustrious_v7.safetensors",
   pose: [],
   outfit_state: [],
-  action: [],
   situation: [],
 };
 
@@ -315,6 +314,12 @@ function PoseTab({ data, toggle, setVal }: TabProps) {
             onClick={() => toggle("shot_type", opt.value)} />
         ))}
       </FieldGroup>
+      <FieldGroup label="インセット表示">
+        {OPTIONS.inset_view.map((opt) => (
+          <Btn key={opt.value || "none"} label={opt.label} active={data.inset_view === opt.value}
+            onClick={() => toggle("inset_view", opt.value)} />
+        ))}
+      </FieldGroup>
       <FieldGroup label="アングル" scrollable>
         {OPTIONS.angle.map((opt) => (
           <Btn key={opt.value} label={opt.label} active={data.angle === opt.value}
@@ -331,21 +336,12 @@ function PoseTab({ data, toggle, setVal }: TabProps) {
           scrollable
         />
       ) : (
-        <>
-          <FieldGroup label="体位" scrollable>
-            {OPTIONS.position.map((opt) => (
-              <Btn key={opt.value} label={opt.label} active={data.position === opt.value}
-                onClick={() => toggle("position", opt.value)} />
-            ))}
-          </FieldGroup>
-          <MultiCheckGroup
-            label="アクション（複数可）"
-            options={OPTIONS.action}
-            selected={data.action}
-            onChange={(vals) => setVal("action", vals)}
-            scrollable
-          />
-        </>
+        <FieldGroup label="体位" scrollable>
+          {OPTIONS.position.map((opt) => (
+            <Btn key={opt.value} label={opt.label} active={data.position === opt.value}
+              onClick={() => toggle("position", opt.value)} />
+          ))}
+        </FieldGroup>
       )}
     </>
   );
