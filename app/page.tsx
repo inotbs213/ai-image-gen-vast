@@ -305,7 +305,7 @@ function OutfitTab({ data, toggle, setVal }: TabProps) {
 }
 
 function PoseTab({ data, toggle, setVal }: TabProps) {
-  const isSolo = !data.scene_type || data.scene_type === "solo";
+  const isSolo = !data.scene_type || data.scene_type === "solo" || data.scene_type === "futanari_solo";
   return (
     <>
       <FieldGroup label="構図">

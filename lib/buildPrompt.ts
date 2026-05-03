@@ -56,15 +56,19 @@ export interface StepFormData {
 }
 
 const SCENE_TYPE_PROMPTS: Record<string, string> = {
-  solo:      "(1girl:1.2), solo",
-  couple_mf: "1boy, 1girl, couple",
-  couple_ff: "2girls, yuri",
-  group:     "multiple girls, group",
+  solo:             "(1girl:1.2), solo",
+  couple_mf:        "1boy, 1girl, couple",
+  couple_ff:        "2girls, yuri",
+  group:            "multiple girls, group",
+  futanari_solo:    "futanari, solo, 1futanari",
+  futanari_female:  "futanari with female, 1futanari, 1girl",
+  futanari_male:    "futanari with male, 1futanari, 1boy",
+  futanari_double:  "2futanari, futa on futa",
 };
 
 export function buildUserPrompt(data: StepFormData, facesLoraStrength: number = 0): string {
   const parts: string[] = [];
-  const isSolo = !data.scene_type || data.scene_type === "solo";
+  const isSolo = !data.scene_type || data.scene_type === "solo" || data.scene_type === "futanari_solo";
 
 
   // 1. scene_type
