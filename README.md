@@ -1,3 +1,55 @@
+# AI Image Generator (Vast.ai + SDXL)
+
+Next.js フロントエンドから Vast.ai 上の Stable Diffusion WebUI (A1111) を操作する画像生成アプリ。
+
+## Vast.ai 上での運用手順
+
+### 初回セットアップ（新インスタンス起動時）
+
+1. Vast.ai でインスタンスを起動し、Jupyter Lab → Terminal を開く
+
+2. セットアップスクリプトを取得：
+   ```bash
+   wget -O ~/setup.sh https://raw.githubusercontent.com/inotbs213/ai-image-gen-vast/main/scripts/vast_setup.sh
+   chmod +x ~/setup.sh
+   ```
+
+3. CivitAI トークンをセットして実行（トークンは環境変数で渡す）：
+   ```bash
+   export CIVITAI_TOKEN="your_civitai_token_here"
+   bash ~/setup.sh
+   ```
+
+   > トークンを毎回入力する手間を省くには、ローカルにラッパースクリプトを作っておくと便利です（Gitには含めない）:
+   > ```bash
+   > cat > ~/setup_with_token.sh << 'EOF'
+   > #!/bin/bash
+   > export CIVITAI_TOKEN="your_civitai_token_here"
+   > bash ~/setup.sh
+   > EOF
+   > chmod +x ~/setup_with_token.sh
+   > ```
+   > 以降は `./setup_with_token.sh` だけで実行できます。
+
+4. セットアップ完了後、A1111 を起動：
+   ```bash
+   wget -O ~/start.sh https://raw.githubusercontent.com/inotbs213/ai-image-gen-vast/main/scripts/vast_start.sh
+   chmod +x ~/start.sh
+   ./start.sh
+   ```
+
+### 2回目以降の起動（Stop → Start 後）
+
+インスタンスを再起動したら Start のみ：
+
+```bash
+./start.sh
+```
+
+表示された cloudflare URL を `.env.local` の `API_URL` に設定して `npm run dev` を再起動。
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
