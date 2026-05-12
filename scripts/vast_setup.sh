@@ -39,41 +39,79 @@ mkdir -p "$MODELS_DIR" "$LORA_DIR" "$CONTROLNET_DIR" "$EXT_DIR"
 echo ""
 echo "[2/5] モデル・LoRAダウンロード（並列実行）..."
 
-# RealVisXL V4.0（バージョンID: 361593 - 動作確認済み）
-echo "  → RealVisXL V4.0 (6.5GB)"
-wget -q -O "$MODELS_DIR/RealVisXL_V4.0.safetensors" \
-  "https://civitai.com/api/download/models/361593?token=$CIVITAI_TOKEN" &
-PID_REALVIS=$!
+NOVA_FILE="$MODELS_DIR/novaAsianXL_illustrious_v7.safetensors"
+HASSAKU_FILE="$MODELS_DIR/hassakuXLIllustrious_v22.safetensors"
+FACES_FILE="$LORA_DIR/better_faces_sdxl.safetensors"
+OPENPOSE_FILE="$CONTROLNET_DIR/OpenPoseXL2.safetensors"
 
-# JuggernautXL v9（バージョンID: 782002）
-echo "  → JuggernautXL v9 (7GB)"
-wget -q -O "$MODELS_DIR/JuggernautXL_v9_RunDiffusionPhoto_v2.safetensors" \
-  "https://civitai.com/api/download/models/782002?token=$CIVITAI_TOKEN" &
-PID_JUGG=$!
+# Nova Asian XL Illustrious v7.0（バージョンID: 2311249）
+echo "  → Nova Asian XL Illustrious v7.0"
+wget -q --content-disposition -O "$NOVA_FILE" \
+  "https://civitai.com/api/download/models/2311249?token=$CIVITAI_TOKEN" &
+PID_NOVA=$!
+
+# Hassaku XL Illustrious v2.2（バージョンID: 1697082）
+echo "  → Hassaku XL Illustrious v2.2"
+wget -q --content-disposition -O "$HASSAKU_FILE" \
+  "https://civitai.com/api/download/models/1697082?token=$CIVITAI_TOKEN" &
+PID_HASSAKU=$!
 
 # Better Faces SDXL LoRA（バージョンID: 142718）
 echo "  → Better Faces SDXL LoRA (435MB)"
-wget -q -O "$LORA_DIR/better_faces_sdxl.safetensors" \
+wget -q --content-disposition -O "$FACES_FILE" \
   "https://civitai.com/api/download/models/142718?token=$CIVITAI_TOKEN" &
 PID_LORA=$!
 
-# OpenPoseXL2（バージョンID: 135867）※ファイル名注意
+# OpenPoseXL2 ControlNet（バージョンID: 135867）
 echo "  → OpenPoseXL2 ControlNet (218MB)"
-wget -q -O "$CONTROLNET_DIR/OpenPoseXL2.safetensors" \
+wget -q --content-disposition -O "$OPENPOSE_FILE" \
   "https://civitai.com/api/download/models/135867?token=$CIVITAI_TOKEN" &
 PID_OPENPOSE=$!
 
-# 全DL待機
-wait $PID_REALVIS $PID_JUGG $PID_LORA $PID_OPENPOSE
-echo "  ✓ ダウンロード完了"
+# 各ジョブを個別に待機して終了コードを記録
+set +e
+wait $PID_NOVA;     RC_NOVA=$?
+wait $PID_HASSAKU;  RC_HASSAKU=$?
+wait $PID_LORA;     RC_LORA=$?
+wait $PID_OPENPOSE; RC_OPENPOSE=$?
+set -e
 
-# サイズ検証
+# ダウンロード結果チェック（終了コード + ファイルサイズ検証）
+check_job() {
+  local label="$1" rc="$2" file="$3" min_bytes="$4"
+  if [ "$rc" -ne 0 ]; then
+    echo "  ✗ $label: wget 失敗 (終了コード: $rc)" >&2
+    return 1
+  fi
+  if [ ! -f "$file" ]; then
+    echo "  ✗ $label: ファイルが存在しません" >&2
+    return 1
+  fi
+  local size
+  size=$(stat -c%s "$file")
+  if [ "$size" -lt "$min_bytes" ]; then
+    echo "  ✗ $label: サイズ異常 ($(( size / 1024 / 1024 ))MB) - ダウンロード失敗の可能性" >&2
+    return 1
+  fi
+  echo "  ✓ $label: $(( size / 1024 / 1024 ))MB"
+}
+
 echo ""
-echo "  ファイルサイズ確認:"
-ls -lh "$MODELS_DIR/RealVisXL_V4.0.safetensors"
-ls -lh "$MODELS_DIR/JuggernautXL_v9_RunDiffusionPhoto_v2.safetensors"
-ls -lh "$LORA_DIR/better_faces_sdxl.safetensors"
-ls -lh "$CONTROLNET_DIR/OpenPoseXL2.safetensors"
+echo "  ダウンロード結果:"
+DOWNLOAD_OK=true
+# モデルは最低500MB、LoRA/ControlNetは最低50MB を閾値とする
+check_job "Nova Asian XL Illustrious v7.0" $RC_NOVA     "$NOVA_FILE"     524288000 || DOWNLOAD_OK=false
+check_job "Hassaku XL Illustrious v2.2"    $RC_HASSAKU  "$HASSAKU_FILE"  524288000 || DOWNLOAD_OK=false
+check_job "Better Faces SDXL LoRA"         $RC_LORA     "$FACES_FILE"     52428800 || DOWNLOAD_OK=false
+check_job "OpenPoseXL2 ControlNet"         $RC_OPENPOSE "$OPENPOSE_FILE"  52428800 || DOWNLOAD_OK=false
+
+if [ "$DOWNLOAD_OK" = false ]; then
+  echo ""
+  echo "  ✗ ダウンロードに失敗したファイルがあります。上記のエラーを確認してください。"
+  exit 1
+fi
+echo ""
+echo "  ✓ 全ファイルのダウンロード完了"
 
 ###############################################################################
 # 3. 拡張機能インストール
