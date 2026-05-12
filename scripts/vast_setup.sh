@@ -14,7 +14,7 @@
 ###############################################################################
 
 set -e  # エラーで停止
-CIVITAI_TOKEN="***REMOVED***"
+CIVITAI_TOKEN="${CIVITAI_TOKEN:?'環境変数 CIVITAI_TOKEN を設定してください（例: export CIVITAI_TOKEN=xxxxx）'}"
 
 WEBUI_DIR="/workspace/stable-diffusion-webui"
 MODELS_DIR="$WEBUI_DIR/models/Stable-diffusion"
