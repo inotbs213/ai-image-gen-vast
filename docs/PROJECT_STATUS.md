@@ -1,5 +1,30 @@
 # AI画像生成ツール プロジェクト
 
+---
+
+## 🔄 セッション引き継ぎ情報（新セッション開始時に確認）
+
+| 項目 | 内容 |
+|---|---|
+| **Vercel本番URL** | https://ai-image-gen-vast.vercel.app |
+| **GitHubリポジトリ** | `inotbs213/ai-image-gen-vast`（Public） |
+| **Vast.ai インスタンス** | 前回 #36622318 は削除済み → **再作成が必要** |
+| **最終更新** | 2026-05-17 |
+
+### ✅ 直近の完了作業
+- git履歴クリーンアップ（git filter-repo でCivitAIトークン削除）
+- リポジトリPublic化
+- CivitAIモデルバージョンID確定（Nova: 2311249 / Hassaku: 1697082）
+- setup_with_token.sh 方式による安全な運用フロー確立
+
+### 🎯 次セッションでの作業予定
+1. Vast.ai インスタンス再作成・セットアップ
+2. シックスナイン生成の確実性向上（視点別選択肢に分割）
+3. 解像度の横長選択が効いていない問題の調査・修正
+4. X線透視表現の導入
+
+---
+
 ## 🎯 目標
 
 [CharaxAI](https://www.charaxai.com/) のような **タブ式UIで高品質な画像を生成できるツール** を、自分専用に構築する。
@@ -94,23 +119,35 @@ ai-image-gen-vast/
 
 ## 🚀 起動手順
 
+> **注意**: リポジトリはPublicのため、CivitAIトークンをGitHubにpushしてはいけない。
+> `setup_with_token.sh` はJupyter Terminal上でのみ手動作成し、Gitには含めない。
+
 ### 🆕 新インスタンス作成時（初回のみ・約20分）
 
 1. Vast.aiで **RTX 3090 / Japan / 50GB / SD WebUI A1111** を借りる
 2. Jupyter Lab → Terminal を開く
-3. 以下を実行:
+3. **`setup_with_token.sh` を手動作成**（トークンを環境変数として渡すラッパー）：
    ```bash
-   wget -O setup.sh https://raw.githubusercontent.com/inotbs213/ai-image-gen-vast/main/scripts/vast_setup.sh
-   chmod +x setup.sh
-   ./setup.sh
+   cat > ~/setup_with_token.sh << 'EOF'
+   #!/bin/bash
+   export CIVITAI_TOKEN="your_civitai_token_here"
+   bash ~/setup.sh
+   EOF
+   chmod +x ~/setup_with_token.sh
    ```
-4. 続いて起動:
+4. `setup.sh` をダウンロードして実行：
    ```bash
-   wget -O start.sh https://raw.githubusercontent.com/inotbs213/ai-image-gen-vast/main/scripts/vast_start.sh
-   chmod +x start.sh
-   ./start.sh
+   wget -O ~/setup.sh https://raw.githubusercontent.com/inotbs213/ai-image-gen-vast/main/scripts/vast_setup.sh
+   chmod +x ~/setup.sh
+   ~/setup_with_token.sh
    ```
-5. 表示されるURLをコピー → Claude Codeに以下を投げる:
+5. 続いて `start.sh` をダウンロードして起動：
+   ```bash
+   wget -O ~/start.sh https://raw.githubusercontent.com/inotbs213/ai-image-gen-vast/main/scripts/vast_start.sh
+   chmod +x ~/start.sh
+   ~/start.sh
+   ```
+6. 表示されるURLをコピー → Claude Codeに以下を投げる:
 
    > `.env.local`の`API_URL`を `<URL>` に更新して`npm run dev`を再起動してください
 
@@ -118,9 +155,9 @@ ai-image-gen-vast/
 
 1. Vast.aiで該当インスタンスを **Start**
 2. Jupyter Lab → Terminal を開く
-3. 実行:
+3. 実行（トークン不要）：
    ```bash
-   ./start.sh
+   ~/start.sh
    ```
 4. 表示されるURLをコピー → Claude Codeに上記の指示文を投げる
 
@@ -161,8 +198,12 @@ ai-image-gen-vast/
 
 ### 🎯 次にやりたい（優先度高）
 
+- [ ] **シックスナイン生成の確実性向上**（視点別の選択肢に分割）
+- [ ] **解像度の横長選択が効いていない問題**の調査・修正
+- [ ] **X線透視表現の導入**（中出し透視・フェラ透視）
+  - 全体透視パターン + 左上インセット切り抜きパターン両方
+- [ ] **童顔表現の強化**（保留中、別途相談）
 - [ ] **ADetailer に LoRA を効かせる設定**（顔だけ別途LoRA処理でバリエーション改善）
-- [ ] **Vercelデプロイ**（スマホから公開URL経由でアクセス）
 - [ ] **ControlNet の活用**（OpenPose で構図固定）
 
 ### 📌 中期ゴール
@@ -207,8 +248,8 @@ ai-image-gen-vast/
 - **症状**：以前動いていたDLコマンドがエラー
 - **対処**：`vast_setup.sh` で動作確認済みのバージョンIDを使用
 - **現行モデルのID**：
-  - Nova Asian XL Illustrious v7.0 → 要確認
-  - Hassaku XL Illustrious v2.2 → 要確認
+  - Nova Asian XL Illustrious v7.0 → `2311249`
+  - Hassaku XL Illustrious v2.2 → `1697082`
   - Better Faces SDXL → `142718`
 
 ---
@@ -220,11 +261,16 @@ ai-image-gen-vast/
 - 推奨スペック: RTX 3090 / Japan / 50GB
 
 ### Civitai
-- API キー: 環境変数 or スクリプトに埋め込み済み
+- API キー: 環境変数経由で渡す（`setup_with_token.sh`）
 - モデル一覧: https://civitai.com/
 
 ### GitHub
-- リポジトリ: `inotbs213/ai-image-gen-vast`
+- リポジトリ: `inotbs213/ai-image-gen-vast`（**Public**）
+- git履歴クリーンアップ済み（git filter-repo で過去のCivitAIトークンを削除）
+- バックアップ: `claude-work/ai-image-gen-vast-backup.git`
+
+### Vercel
+- 本番URL: https://ai-image-gen-vast.vercel.app
 
 ---
 
