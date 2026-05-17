@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { buildUserPrompt, StepFormData } from "@/lib/buildPrompt";
+import { buildUserPrompt, StepFormData, isPairScene, CharacterSpec } from "@/lib/buildPrompt";
 import { OPTIONS, MODELS, ModelDef } from "@/lib/optionsData";
 
 // ── モデルヘルパー ────────────────────────────────────────────
@@ -149,6 +149,135 @@ function MultiCheckGroup({
   );
 }
 
+// ── キャラ別フィールド（ペア時用） ──────────────────────────
+function CharacterField<K extends keyof CharacterSpec>({
+  c,
+  onChange,
+  fieldKey,
+  label,
+  options,
+  scrollable,
+}: {
+  c: CharacterSpec;
+  onChange: (newSpec: CharacterSpec) => void;
+  fieldKey: K;
+  label: string;
+  options: readonly { label: string; value: string }[];
+  scrollable?: boolean;
+}) {
+  return (
+    <FieldGroup label={label} scrollable={scrollable}>
+      {options.map((opt) => (
+        <Btn
+          key={opt.value || "none"}
+          label={opt.label}
+          active={c[fieldKey] === opt.value}
+          onClick={() =>
+            onChange({
+              ...c,
+              [fieldKey]: c[fieldKey] === opt.value ? undefined : (opt.value as CharacterSpec[K]),
+            })
+          }
+        />
+      ))}
+    </FieldGroup>
+  );
+}
+
+function CharacterBlock({
+  title,
+  character,
+  onChange,
+}: {
+  title: string;
+  character?: CharacterSpec;
+  onChange: (c: CharacterSpec) => void;
+}) {
+  const c: CharacterSpec = character ?? {};
+
+  return (
+    <div className="border border-purple-700/40 rounded-xl p-4 space-y-4 bg-gray-800/30">
+      <h3 className="text-base font-bold text-purple-400">{title}</h3>
+
+      <div>
+        <label className="text-xs text-gray-400 block mb-1">キャラ名（必須）</label>
+        <input
+          type="text"
+          value={c.name ?? ""}
+          onChange={(e) => onChange({ ...c, name: e.target.value })}
+          placeholder="例: himiko toga, nami (one piece)"
+          className="w-full bg-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
+      </div>
+
+      <div>
+        <label className="text-xs text-gray-400 block mb-1">追加特徴（自由記述）</label>
+        <input
+          type="text"
+          value={c.extra ?? ""}
+          onChange={(e) => onChange({ ...c, extra: e.target.value })}
+          placeholder="例: fangs, school uniform"
+          className="w-full bg-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
+      </div>
+
+      <div className="flex items-center gap-4 flex-wrap">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={!!c.is_futanari}
+            onChange={(e) => onChange({ ...c, is_futanari: e.target.checked })}
+            className="w-4 h-4 accent-purple-500"
+          />
+          <span className="text-sm text-gray-300">ふたなり化</span>
+        </label>
+
+        <div className="flex gap-2 items-center">
+          <span className="text-xs text-gray-400">役割:</span>
+          {(["dom", "sub", "neutral"] as const).map((role) => (
+            <Btn
+              key={role}
+              label={role === "dom" ? "攻め" : role === "sub" ? "受け" : "中立"}
+              active={c.role === role}
+              onClick={() => onChange({ ...c, role: c.role === role ? undefined : role })}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* キャラ基本 */}
+      <CharacterField c={c} onChange={onChange} fieldKey="age" label="年齢" options={OPTIONS.age} />
+      <CharacterField c={c} onChange={onChange} fieldKey="ethnicity" label="人種" options={OPTIONS.ethnicity} />
+      <CharacterField c={c} onChange={onChange} fieldKey="skin_tone" label="肌の色" options={OPTIONS.skin_tone} />
+      <CharacterField c={c} onChange={onChange} fieldKey="body_type" label="体型" options={OPTIONS.body_type} />
+      <CharacterField c={c} onChange={onChange} fieldKey="breast_size" label="胸サイズ" options={OPTIONS.breast_size} />
+      <CharacterField c={c} onChange={onChange} fieldKey="pubic_hair" label="陰毛" options={OPTIONS.pubic_hair} />
+
+      {/* 顔・髪 */}
+      <CharacterField c={c} onChange={onChange} fieldKey="face_type" label="顔タイプ" options={OPTIONS.face_type} scrollable />
+      <CharacterField c={c} onChange={onChange} fieldKey="hair_color" label="髪色" options={OPTIONS.hair_color} />
+      <CharacterField c={c} onChange={onChange} fieldKey="hair_style" label="ヘアスタイル" options={OPTIONS.hair_style} scrollable />
+      <CharacterField c={c} onChange={onChange} fieldKey="eye_color" label="目の色" options={OPTIONS.eye_color} />
+      <CharacterField c={c} onChange={onChange} fieldKey="eye_shape" label="目の形" options={OPTIONS.eye_shape} scrollable />
+      <CharacterField c={c} onChange={onChange} fieldKey="mouth" label="口元" options={OPTIONS.mouth} />
+      <CharacterField c={c} onChange={onChange} fieldKey="expression" label="表情" options={OPTIONS.expression} scrollable />
+
+      {/* 衣装 */}
+      <CharacterField c={c} onChange={onChange} fieldKey="outfit" label="衣装" options={OPTIONS.outfit} scrollable />
+      <CharacterField c={c} onChange={onChange} fieldKey="outfit_color" label="衣装の色" options={OPTIONS.outfit_color} />
+      <CharacterField c={c} onChange={onChange} fieldKey="outfit_material" label="素材" options={OPTIONS.outfit_material} />
+      <MultiCheckGroup
+        label="衣装状態（複数可）"
+        options={OPTIONS.outfit_state}
+        selected={c.outfit_state ?? []}
+        onChange={(vals) => onChange({ ...c, outfit_state: vals })}
+      />
+      <CharacterField c={c} onChange={onChange} fieldKey="underwear" label="下着・インナー" options={OPTIONS.underwear} scrollable />
+      <CharacterField c={c} onChange={onChange} fieldKey="exposure" label="露出度" options={OPTIONS.exposure} />
+    </div>
+  );
+}
+
 // ── タブProps型 ───────────────────────────────────────────────
 interface TabProps {
   data: StepFormData;
@@ -158,6 +287,7 @@ interface TabProps {
 
 // ── 各タブコンポーネント ──────────────────────────────────────
 function CharacterTab({ data, toggle, setVal }: TabProps) {
+  const isPair = isPairScene(data.scene_type);
   return (
     <>
       <FieldGroup label="シーンタイプ">
@@ -166,55 +296,91 @@ function CharacterTab({ data, toggle, setVal }: TabProps) {
             onClick={() => toggle("scene_type", opt.value)} />
         ))}
       </FieldGroup>
-      {(data.scene_type === undefined || data.scene_type === "solo") && (
-        <FieldGroup label="性別">
-          {OPTIONS.gender.map((opt) => (
-            <Btn key={opt.value} label={opt.label} active={data.gender === opt.value}
-              onClick={() => toggle("gender", opt.value)} />
-          ))}
-        </FieldGroup>
+
+      {isPair ? (
+        <>
+          <div className="bg-purple-900/20 border border-purple-700/40 rounded-lg p-3 space-y-1">
+            <p className="text-xs text-purple-300">
+              🎭 ペアシーン選択中：各キャラを個別に設定できます。キャラ名は必須（例: himiko toga）、他は空欄ならキャラ名タグに従います。
+            </p>
+            <p className="text-xs text-gray-400">
+              ※ 肌色・体型・胸サイズ・年齢はモデルの特性上、両キャラに影響することがあります
+            </p>
+          </div>
+          <CharacterBlock
+            title="🎭 キャラA設定"
+            character={data.char_a}
+            onChange={(c) => setVal("char_a", c)}
+          />
+          <CharacterBlock
+            title="🎭 キャラB設定"
+            character={data.char_b}
+            onChange={(c) => setVal("char_b", c)}
+          />
+        </>
+      ) : (
+        <>
+          {(data.scene_type === undefined || data.scene_type === "solo") && (
+            <FieldGroup label="性別">
+              {OPTIONS.gender.map((opt) => (
+                <Btn key={opt.value} label={opt.label} active={data.gender === opt.value}
+                  onClick={() => toggle("gender", opt.value)} />
+              ))}
+            </FieldGroup>
+          )}
+          <FieldGroup label="年齢">
+            {OPTIONS.age.map((opt) => (
+              <Btn key={opt.value} label={opt.label} active={data.age === opt.value}
+                onClick={() => toggle("age", opt.value)} />
+            ))}
+          </FieldGroup>
+          <FieldGroup label="人種">
+            {OPTIONS.ethnicity.map((opt) => (
+              <Btn key={opt.value} label={opt.label} active={data.ethnicity === opt.value}
+                onClick={() => toggle("ethnicity", opt.value)} />
+            ))}
+          </FieldGroup>
+          <FieldGroup label="肌の色">
+            {OPTIONS.skin_tone.map((opt) => (
+              <Btn key={opt.value} label={opt.label} active={data.skin_tone === opt.value}
+                onClick={() => toggle("skin_tone", opt.value)} />
+            ))}
+          </FieldGroup>
+          <FieldGroup label="体型">
+            {OPTIONS.body_type.map((opt) => (
+              <Btn key={opt.value} label={opt.label} active={data.body_type === opt.value}
+                onClick={() => toggle("body_type", opt.value)} />
+            ))}
+          </FieldGroup>
+          <FieldGroup label="胸サイズ">
+            {OPTIONS.breast_size.map((opt) => (
+              <Btn key={opt.value} label={opt.label} active={data.breast_size === opt.value}
+                onClick={() => toggle("breast_size", opt.value)} />
+            ))}
+          </FieldGroup>
+          <FieldGroup label="陰毛">
+            {OPTIONS.pubic_hair.map((opt) => (
+              <Btn key={opt.value || "none"} label={opt.label} active={data.pubic_hair === opt.value}
+                onClick={() => toggle("pubic_hair", opt.value)} />
+            ))}
+          </FieldGroup>
+        </>
       )}
-      <FieldGroup label="年齢">
-        {OPTIONS.age.map((opt) => (
-          <Btn key={opt.value} label={opt.label} active={data.age === opt.value}
-            onClick={() => toggle("age", opt.value)} />
-        ))}
-      </FieldGroup>
-      <FieldGroup label="人種">
-        {OPTIONS.ethnicity.map((opt) => (
-          <Btn key={opt.value} label={opt.label} active={data.ethnicity === opt.value}
-            onClick={() => toggle("ethnicity", opt.value)} />
-        ))}
-      </FieldGroup>
-      <FieldGroup label="肌の色">
-        {OPTIONS.skin_tone.map((opt) => (
-          <Btn key={opt.value} label={opt.label} active={data.skin_tone === opt.value}
-            onClick={() => toggle("skin_tone", opt.value)} />
-        ))}
-      </FieldGroup>
-      <FieldGroup label="体型">
-        {OPTIONS.body_type.map((opt) => (
-          <Btn key={opt.value} label={opt.label} active={data.body_type === opt.value}
-            onClick={() => toggle("body_type", opt.value)} />
-        ))}
-      </FieldGroup>
-      <FieldGroup label="胸サイズ">
-        {OPTIONS.breast_size.map((opt) => (
-          <Btn key={opt.value} label={opt.label} active={data.breast_size === opt.value}
-            onClick={() => toggle("breast_size", opt.value)} />
-        ))}
-      </FieldGroup>
-      <FieldGroup label="陰毛">
-        {OPTIONS.pubic_hair.map((opt) => (
-          <Btn key={opt.value || "none"} label={opt.label} active={data.pubic_hair === opt.value}
-            onClick={() => toggle("pubic_hair", opt.value)} />
-        ))}
-      </FieldGroup>
     </>
   );
 }
 
 function FaceTab({ data, toggle }: TabProps) {
+  if (isPairScene(data.scene_type)) {
+    return (
+      <div className="bg-gray-800/50 rounded-lg p-4">
+        <p className="text-purple-400 text-sm font-medium">🎭 ペアシーン選択中</p>
+        <p className="text-gray-400 text-xs mt-1">
+          「👤 キャラ」タブの各キャラ設定で顔・髪を個別に指定してください
+        </p>
+      </div>
+    );
+  }
   return (
     <>
       <FieldGroup label="顔タイプ（雰囲気）">
@@ -264,6 +430,16 @@ function FaceTab({ data, toggle }: TabProps) {
 }
 
 function OutfitTab({ data, toggle, setVal }: TabProps) {
+  if (isPairScene(data.scene_type)) {
+    return (
+      <div className="bg-gray-800/50 rounded-lg p-4">
+        <p className="text-purple-400 text-sm font-medium">🎭 ペアシーン選択中</p>
+        <p className="text-gray-400 text-xs mt-1">
+          「👤 キャラ」タブの各キャラ設定で衣装を個別に指定してください
+        </p>
+      </div>
+    );
+  }
   return (
     <>
       <FieldGroup label="衣装" scrollable>
@@ -512,19 +688,31 @@ function DetailTab({
 
 // ── 設定サマリー ──────────────────────────────────────────────
 function SettingSummary({ data }: { data: StepFormData }) {
-  const parts = [
+  const isPair = isPairScene(data.scene_type);
+  const parts: (string | null)[] = [
     OPTIONS.scene_type.find((o) => o.value === data.scene_type)?.label ?? null,
-    data.gender === "female" ? "女性" : data.gender === "male" ? "男性" : null,
-    OPTIONS.age.find((o) => o.value === data.age)?.label ?? null,
-    OPTIONS.body_type.find((o) => o.value === data.body_type)?.label ?? null,
-    OPTIONS.outfit.find((o) => o.value === data.outfit)?.label ?? null,
-    OPTIONS.shot_type.find((o) => o.value === data.shot_type)?.label ?? null,
-  ].filter(Boolean);
+  ];
 
-  if (parts.length === 0) return null;
+  if (isPair) {
+    if (data.char_a?.name) parts.push(`A:${data.char_a.name}`);
+    if (data.char_b?.name) parts.push(`B:${data.char_b.name}`);
+    if (data.position) {
+      parts.push(OPTIONS.position.find((o) => o.value === data.position)?.label ?? null);
+    }
+  } else {
+    parts.push(data.gender === "female" ? "女性" : data.gender === "male" ? "男性" : null);
+    parts.push(OPTIONS.age.find((o) => o.value === data.age)?.label ?? null);
+    parts.push(OPTIONS.body_type.find((o) => o.value === data.body_type)?.label ?? null);
+    parts.push(OPTIONS.outfit.find((o) => o.value === data.outfit)?.label ?? null);
+  }
+
+  parts.push(OPTIONS.shot_type.find((o) => o.value === data.shot_type)?.label ?? null);
+
+  const filtered = parts.filter(Boolean);
+  if (filtered.length === 0) return null;
   return (
     <p className="text-xs text-gray-400 mb-2 truncate">
-      {parts.join(" / ")}
+      {filtered.join(" / ")}
     </p>
   );
 }
