@@ -40,9 +40,6 @@ export interface StepFormData {
   situation: string[];
   mood?: string;
 
-  // NSFW
-  nsfw_level?: string;
-
   // 共通
   style: "real" | "anime" | "cinematic";
   freePrompt?: string;
@@ -75,6 +72,9 @@ export function buildUserPrompt(data: StepFormData, facesLoraStrength: number = 
   if (data.scene_type && SCENE_TYPE_PROMPTS[data.scene_type]) {
     parts.push(SCENE_TYPE_PROMPTS[data.scene_type]);
   }
+
+  // 1.5. freePrompt（強調のため前半に配置）
+  if (data.freePrompt) parts.push(data.freePrompt);
 
   // 2. shot_type
   if (data.shot_type === "full body") {
@@ -118,8 +118,8 @@ export function buildUserPrompt(data: StepFormData, facesLoraStrength: number = 
   if (data.ethnicity) parts.push(data.ethnicity);
   if (data.skin_tone) parts.push(data.skin_tone);
 
-  // 9. キャラ基本
-  if (data.gender) parts.push(data.gender);
+  // 9. キャラ基本（scene_type で人数・性別が決まる場合は gender 不要）
+  if (data.gender && !data.scene_type) parts.push(data.gender);
   if (data.age) parts.push(data.age);
   if (data.body_type) parts.push(data.body_type);
   if (data.breast_size) parts.push(data.breast_size);
@@ -127,8 +127,11 @@ export function buildUserPrompt(data: StepFormData, facesLoraStrength: number = 
   // 10. pubic_hair（強調）
   if (data.pubic_hair) parts.push(`(${data.pubic_hair}:1.4)`);
 
-  // 11. eye_shape（強調・顔セクション先頭）
-  if (data.eye_shape) parts.push(`(${data.eye_shape}:1.3)`);
+  // 11. eye_shape（「標準」は強調しない）
+  if (data.eye_shape) {
+    const isStandard = data.eye_shape === "detailed eyes";
+    parts.push(isStandard ? data.eye_shape : `(${data.eye_shape}:1.3)`);
+  }
 
   // 12. 顔・髪
   if (data.face_type) parts.push(data.face_type);
@@ -147,11 +150,7 @@ export function buildUserPrompt(data: StepFormData, facesLoraStrength: number = 
   // 15. mood
   if (data.mood) parts.push(data.mood);
 
-  // 16. freePrompt
-  if (data.freePrompt) parts.push(data.freePrompt);
-
-  // 17. nsfw_level + LoRA
-  if (data.nsfw_level) parts.push(data.nsfw_level);
+  // 16. LoRA
   if (facesLoraStrength > 0) parts.push(`<lora:better_faces_sdxl:${facesLoraStrength}>`);
 
   return parts.join(", ");

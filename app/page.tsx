@@ -166,12 +166,14 @@ function CharacterTab({ data, toggle, setVal }: TabProps) {
             onClick={() => toggle("scene_type", opt.value)} />
         ))}
       </FieldGroup>
-      <FieldGroup label="性別">
-        {OPTIONS.gender.map((opt) => (
-          <Btn key={opt.value} label={opt.label} active={data.gender === opt.value}
-            onClick={() => toggle("gender", opt.value)} />
-        ))}
-      </FieldGroup>
+      {(data.scene_type === undefined || data.scene_type === "solo") && (
+        <FieldGroup label="性別">
+          {OPTIONS.gender.map((opt) => (
+            <Btn key={opt.value} label={opt.label} active={data.gender === opt.value}
+              onClick={() => toggle("gender", opt.value)} />
+          ))}
+        </FieldGroup>
+      )}
       <FieldGroup label="年齢">
         {OPTIONS.age.map((opt) => (
           <Btn key={opt.value} label={opt.label} active={data.age === opt.value}
@@ -336,12 +338,20 @@ function PoseTab({ data, toggle, setVal }: TabProps) {
           scrollable
         />
       ) : (
-        <FieldGroup label="体位" scrollable>
-          {OPTIONS.position.map((opt) => (
-            <Btn key={opt.value} label={opt.label} active={data.position === opt.value}
-              onClick={() => toggle("position", opt.value)} />
-          ))}
-        </FieldGroup>
+        <>
+          <FieldGroup label="体位" scrollable>
+            {OPTIONS.position.filter((opt) => !opt.label.includes("シックスナイン")).map((opt) => (
+              <Btn key={opt.value} label={opt.label} active={data.position === opt.value}
+                onClick={() => toggle("position", opt.value)} />
+            ))}
+          </FieldGroup>
+          <FieldGroup label="シックスナイン系" scrollable>
+            {OPTIONS.position.filter((opt) => opt.label.includes("シックスナイン")).map((opt) => (
+              <Btn key={opt.value} label={opt.label} active={data.position === opt.value}
+                onClick={() => toggle("position", opt.value)} />
+            ))}
+          </FieldGroup>
+        </>
       )}
     </>
   );
@@ -383,20 +393,6 @@ function DetailTab({
 }) {
   return (
     <>
-      <div>
-        <FieldGroup label="🔞 NSFW強度">
-          {OPTIONS.nsfw_level.map((opt) => (
-            <Btn key={opt.value || "none"} label={opt.label} active={data.nsfw_level === opt.value}
-              onClick={() => toggle("nsfw_level", opt.value)} />
-          ))}
-        </FieldGroup>
-        {data.nsfw_level && (
-          <p className="text-xs text-yellow-500 mt-1 ml-1">
-            ⚠️ NSFW強度を選択中。意図しない場合は「なし」を選択してください
-          </p>
-        )}
-      </div>
-
       <div>
         <FieldGroup label="モデル">
           {MODELS.map((m) => (
