@@ -308,6 +308,10 @@ export const OPTIONS = {
     { label: "胸アップインセット", value: "inset, breast focus close-up, multiple views" },
     { label: "結合部インセット", value: "inset, penetration focus close-up, multiple views" },
     { label: "マルチアングル", value: "multiple views, two views" },
+    { label: "全体透視",                 value: "(x-ray:1.3), see-through, internal view, cross-section" },
+    { label: "透視インセット（中出し）", value: "inset, x-ray close-up, internal cumshot, cross-section view, multiple views" },
+    { label: "透視インセット（フェラ）", value: "inset, x-ray close-up, penis in mouth cross-section, multiple views" },
+    { label: "透視インセット（挿入）",   value: "inset, x-ray close-up, internal penetration, cross-section, multiple views" },
   ],
   angle: [
     { label: "正面",       value: "front" },
