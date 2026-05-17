@@ -139,18 +139,41 @@ fi
 ###############################################################################
 echo ""
 echo "[4/5] 依存関係修正..."
-echo "  → numpy/pillow/opencv/scikit-image を固定バージョンに"
+echo "  → numpy/pillow/opencv を固定バージョンに"
 
-pip install -q --break-system-packages \
-  numpy==1.26.4 \
-  "pillow<10" \
-  opencv-python==4.8.0.76 \
-  opencv-python-headless==4.8.0.76
+python -m pip install --force-reinstall \
+  "numpy==1.26.4" \
+  "pillow==9.5.0" \
+  "opencv-python==4.8.0.76" \
+  "opencv-python-headless==4.8.0.76" 2>&1 | tee /tmp/pip_install.log
 
 # scikit-imageはnumpyに合わせてソースから再ビルド
-pip install -q --break-system-packages --force-reinstall --no-binary scikit-image scikit-image
+echo "  → scikit-image をnumpyに合わせてソースから再ビルド"
+python -m pip install --force-reinstall --no-binary scikit-image scikit-image 2>&1 | tee -a /tmp/pip_install.log
 
-echo "  ✓ 依存関係OK"
+# 実バージョン検証
+echo "  → バージョン検証..."
+ACTUAL_NUMPY=$(python -c "import numpy; print(numpy.__version__)")
+ACTUAL_PILLOW=$(python -c "import PIL; print(PIL.__version__)")
+ACTUAL_CV2=$(python -c "import cv2; print(cv2.__version__)")
+
+if [ "$ACTUAL_NUMPY" != "1.26.4" ]; then
+  echo "  ❌ numpy バージョン不一致: 期待 1.26.4 / 実際 $ACTUAL_NUMPY"
+  echo "  手動修復: python -m pip install --force-reinstall numpy==1.26.4 pillow==9.5.0 opencv-python==4.8.0.76 opencv-python-headless==4.8.0.76"
+  exit 1
+fi
+if [ "$ACTUAL_PILLOW" != "9.5.0" ]; then
+  echo "  ❌ pillow バージョン不一致: 期待 9.5.0 / 実際 $ACTUAL_PILLOW"
+  echo "  手動修復: python -m pip install --force-reinstall numpy==1.26.4 pillow==9.5.0 opencv-python==4.8.0.76 opencv-python-headless==4.8.0.76"
+  exit 1
+fi
+if [ "$ACTUAL_CV2" != "4.8.0.76" ]; then
+  echo "  ❌ opencv バージョン不一致: 期待 4.8.0.76 / 実際 $ACTUAL_CV2"
+  echo "  手動修復: python -m pip install --force-reinstall numpy==1.26.4 pillow==9.5.0 opencv-python==4.8.0.76 opencv-python-headless==4.8.0.76"
+  exit 1
+fi
+
+echo "  ✓ 依存関係OK（numpy=$ACTUAL_NUMPY, pillow=$ACTUAL_PILLOW, opencv=$ACTUAL_CV2）"
 
 ###############################################################################
 # 5. 完了メッセージ

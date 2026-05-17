@@ -8,7 +8,7 @@
 |---|---|
 | **Vercel本番URL** | https://ai-image-gen-vast.vercel.app |
 | **GitHubリポジトリ** | `inotbs213/ai-image-gen-vast`（Public） |
-| **Vast.ai インスタンス** | 前回 #36622318 は削除済み → **再作成が必要** |
+| **Vast.ai インスタンス** | #36907748（Quebec, CA / RTX 3090） |
 | **最終更新** | 2026-05-17 |
 
 ### ✅ 直近の完了作業
@@ -16,12 +16,14 @@
 - リポジトリPublic化
 - CivitAIモデルバージョンID確定（Nova: 2311249 / Hassaku: 1697082）
 - setup_with_token.sh 方式による安全な運用フロー確立
+- Vast.ai 新インスタンス #36907748（Quebec, CA / RTX 3090）でセットアップ完了
+- vast_setup.sh の依存関係チェックロジック修正（バージョン検証＋失敗時exit）
+- スマホ運用は Vercel本番URL、PC開発は localhost で並行運用方針確立
 
 ### 🎯 次セッションでの作業予定
-1. Vast.ai インスタンス再作成・セットアップ
-2. シックスナイン生成の確実性向上（視点別選択肢に分割）
-3. 解像度の横長選択が効いていない問題の調査・修正
-4. X線透視表現の導入
+1. シックスナイン生成の確実性向上（視点別選択肢に分割）
+2. 解像度の横長選択が効いていない問題の調査・修正
+3. X線透視表現の導入
 
 ---
 
@@ -163,6 +165,22 @@ ai-image-gen-vast/
 
 ---
 
+## 📱 スマホ運用方針
+
+- **スマホからのアクセス**: Vercel本番URL（https://ai-image-gen-vast.vercel.app）を使用
+- **PCでの開発**: localhost:3000 で並行作業可能
+- **修正反映フロー**:
+  1. PC（Claude Code）で修正
+  2. git commit & push（main ブランチ）
+  3. Vercel が自動デプロイ（30秒〜1分）
+  4. スマホでリロードして確認
+- **毎セッションの必須作業**:
+  - cloudflared URL を Vercel 環境変数 `API_URL` にも反映
+  - Vercel ダッシュボード → Settings → Environment Variables → API_URL を更新 → Redeploy
+- **重要**: Vercel と localhost の両方が同じ cloudflared URL を参照するため、URL更新は両方必要
+
+---
+
 ## 💰 Vast.ai 料金管理
 
 | 操作 | 課金 | 用途 |
@@ -251,6 +269,13 @@ ai-image-gen-vast/
   - Nova Asian XL Illustrious v7.0 → `2311249`
   - Hassaku XL Illustrious v2.2 → `1697082`
   - Better Faces SDXL → `142718`
+
+### Vast.ai テンプレート版 A1111 の起動方式
+- **重要**: Vast.ai の A1111 テンプレートは Supervisor（tclsh + unbuffer）が `launch.py` を死活監視
+- **影響**: `pkill -9 -f launch.py` で kill しても自動再起動する
+- **起動方式**: venv は使わずシステムPython `/venv/main/bin/python` 直接実行
+- **依存関係修正後**: kill するだけで Supervisor が自動再立ち上げ
+- **起動確認**: `curl http://localhost:17860/sdapi/v1/sd-models` でモデル一覧が返ればOK
 
 ---
 
