@@ -86,8 +86,9 @@ export function buildUserPrompt(data: StepFormData, facesLoraStrength: number = 
   // 2.5. inset_view
   if (data.inset_view) parts.push(data.inset_view);
 
-  // 3. angle
-  if (data.angle) parts.push(data.angle);
+  // 3. angle（シックスナイン選択時はスキップ: 視点タグがposition側に含まれるため）
+  const isSixtyNine = !!data.position?.includes("sixty-nine position");
+  if (data.angle && !isSixtyNine) parts.push(data.angle);
 
   // 4. pose（solo）or position（非solo）
   if (isSolo) {
