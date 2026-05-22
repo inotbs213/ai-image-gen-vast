@@ -90,17 +90,6 @@ export interface StepFormData {
   model?: string;
 }
 
-const SCENE_TYPE_PROMPTS: Record<string, string> = {
-  solo:             "(1girl:1.2), solo",
-  couple_mf:        "1boy, 1girl, couple",
-  couple_ff:        "2girls, yuri",
-  group:            "multiple girls, group",
-  futanari_solo:    "futanari, solo, 1futanari",
-  futanari_female:  "futanari with female, 1futanari, 1girl",
-  futanari_male:    "futanari with male, 1futanari, 1boy",
-  futanari_double:  "2futanari, futa on futa",
-};
-
 const ROLE_PROMPTS: Record<CharacterRole, string> = {
   dom: "dominant, aggressive, taking initiative",
   sub: "submissive, receiving, being pleased",
@@ -110,6 +99,36 @@ const ROLE_PROMPTS: Record<CharacterRole, string> = {
 export function isPairScene(scene_type?: string): boolean {
   if (!scene_type) return false;
   return scene_type !== "solo" && scene_type !== "futanari_solo";
+}
+
+// scene_type + 各キャラのis_futanariから動的に人数・性別タグを生成
+function buildSceneTypePrompt(
+  scene_type: string,
+  char_a?: CharacterSpec,
+  char_b?: CharacterSpec
+): string {
+  const aFuta = !!char_a?.is_futanari;
+  const bFuta = !!char_b?.is_futanari;
+  const futaCount = (aFuta ? 1 : 0) + (bFuta ? 1 : 0);
+
+  switch (scene_type) {
+    case "solo":
+      return "(1girl:1.2), solo";
+    case "futanari_solo":
+      return "futanari, solo, 1futanari";
+    case "couple_mf":
+      if (aFuta || bFuta) return "1futanari, 1boy, futa on male";
+      return "1boy, 1girl, couple";
+    case "couple_ff":
+      if (futaCount === 2) return "2futanari, futa on futa";
+      if (futaCount === 1) return "1futanari, 1girl";
+      return "2girls, yuri";
+    case "group":
+      if (futaCount >= 1) return `multiple girls, ${futaCount}futanari, group`;
+      return "multiple girls, group";
+    default:
+      return "";
+  }
 }
 
 function hasCharContent(c?: CharacterSpec): boolean {
@@ -125,12 +144,26 @@ function hasCharContent(c?: CharacterSpec): boolean {
 
 function buildCharacterBlock(c: CharacterSpec): string {
   const parts: string[] = [];
-  if (c.name) parts.push(`(${c.name}:1.2)`);
+
+  // === 識別子（BREAK後の先頭に置き、強い重みでキャラを分離）===
+  if (c.name) parts.push(`(${c.name}:1.3)`);
   if (c.extra) parts.push(c.extra);
   if (c.is_futanari) parts.push("futanari, futanari penis");
   if (c.role && ROLE_PROMPTS[c.role]) parts.push(ROLE_PROMPTS[c.role]);
 
-  // キャラ基本
+  // === 顔・髪（混ざりやすいので強調・上位に配置）===
+  if (c.hair_color) parts.push(`(${c.hair_color}:1.2)`);
+  if (c.hair_style) parts.push(c.hair_style);
+  if (c.eye_color) parts.push(c.eye_color);
+  if (c.eye_shape) {
+    const isStandard = c.eye_shape === "detailed eyes";
+    parts.push(isStandard ? c.eye_shape : `(${c.eye_shape}:1.3)`);
+  }
+  if (c.face_type) parts.push(c.face_type);
+  if (c.mouth) parts.push(c.mouth);
+  if (c.expression) parts.push(`(${c.expression}:1.2)`);
+
+  // === キャラ基本（モデル特性上、両キャラに影響しやすい）===
   if (c.age) parts.push(c.age);
   if (c.ethnicity) parts.push(c.ethnicity);
   if (c.skin_tone) parts.push(c.skin_tone);
@@ -138,19 +171,7 @@ function buildCharacterBlock(c: CharacterSpec): string {
   if (c.breast_size) parts.push(c.breast_size);
   if (c.pubic_hair) parts.push(`(${c.pubic_hair}:1.4)`);
 
-  // 顔・髪
-  if (c.eye_shape) {
-    const isStandard = c.eye_shape === "detailed eyes";
-    parts.push(isStandard ? c.eye_shape : `(${c.eye_shape}:1.3)`);
-  }
-  if (c.face_type) parts.push(c.face_type);
-  if (c.hair_color) parts.push(c.hair_color);
-  if (c.hair_style) parts.push(c.hair_style);
-  if (c.eye_color) parts.push(c.eye_color);
-  if (c.mouth) parts.push(c.mouth);
-  if (c.expression) parts.push(c.expression);
-
-  // 衣装
+  // === 衣装 ===
   if (c.outfit) {
     const outfitParts = [
       c.outfit_color,
@@ -172,9 +193,10 @@ export function buildUserPrompt(data: StepFormData, facesLoraStrength: number = 
   const parts: string[] = [];
   const isSolo = !isPairScene(data.scene_type);
 
-  // 1. scene_type
-  if (data.scene_type && SCENE_TYPE_PROMPTS[data.scene_type]) {
-    parts.push(SCENE_TYPE_PROMPTS[data.scene_type]);
+  // 1. scene_type（is_futanari に応じて動的生成）
+  if (data.scene_type) {
+    const sceneTypePrompt = buildSceneTypePrompt(data.scene_type, data.char_a, data.char_b);
+    if (sceneTypePrompt) parts.push(sceneTypePrompt);
   }
 
   // 1.5. freePrompt（強調のため前半に配置）

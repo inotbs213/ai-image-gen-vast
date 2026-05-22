@@ -5,9 +5,6 @@ export const OPTIONS = {
     { label: "女女カップル",        value: "couple_ff" },
     { label: "複数（3人以上）",     value: "group" },
     { label: "ふたなり（ソロ）",    value: "futanari_solo" },
-    { label: "ふたなり×女",         value: "futanari_female" },
-    { label: "ふたなり×男",         value: "futanari_male" },
-    { label: "ふたなり×ふたなり",   value: "futanari_double" },
   ],
   gender: [
     { label: "女性", value: "female" },
